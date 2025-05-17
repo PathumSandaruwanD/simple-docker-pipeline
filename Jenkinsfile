@@ -63,29 +63,23 @@ pipeline {
 
         stage('Deploy (Optional)') {
             when {
-                branch 'main'  // Only deploy from main branch
-            }
-            steps {
-                script {
-                    echo "Deploying application..."
-                    try {
-                        sh '''
-                        # Stop and remove any existing container
-                        docker stop running-app || true
-                        docker rm running-app || true
-                        
-                        # Run new container
-                        docker run -d \
-                            --name running-app \
-                            -p 5000:5000 \
-                            ${DOCKER_HUB}/${APP_NAME}:latest
-                        '''
-                        echo "Application deployed successfully on port 5000"
-                    } catch (Exception e) {
-                        error "Deployment failed: ${e.getMessage()}"
-                    }
+                anyOf{
+                    branch 'main'
+                    branch 'master'
                 }
             }
+            script {
+            echo "⚡ Deploying application..."
+            // Add this to verify branch detection
+            echo "Current branch: ${env.BRANCH_NAME}" 
+            
+            sh '''
+            docker stop running-app || true
+            docker rm running-app || true
+            docker run -d --name running-app -p 5000:5000 ${DOCKER_HUB}/${APP_NAME}:latest
+            '''
+            echo "🌐 Application deployed at http://<server-ip>:5000"
+        }
         }
     }
 
