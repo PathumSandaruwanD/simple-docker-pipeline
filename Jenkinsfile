@@ -60,55 +60,54 @@ pipeline {
         }
 
         stage('🚀 Deploy') {
-    when {
-        expression { 
-            env.BRANCH_NAME == 'main' || 
-            env.GIT_BRANCH == 'origin/main' ||
-            env.BRANCH_NAME == 'master' || 
-            env.GIT_BRANCH == 'origin/master'
-        }
-    }
-    steps {
-        script {
-            echo "⚡ Deploying application..."
-            echo "Branch Info:"
-            echo "BRANCH_NAME: ${env.BRANCH_NAME}"
-            echo "GIT_BRANCH: ${env.GIT_BRANCH}"
-            
-            sh '''
-            # Stop and remove existing container
-            docker stop running-app || true
-            docker rm running-app || true
-            
-            # Run new container with restart policy
-            docker run -d \
-                --name running-app \
-                -p 5000:5000 \
-                --restart unless-stopped \
-                ${DOCKER_HUB}/${APP_NAME}:latest
-            '''
-            echo "🌐 Application deployed at http://<your-server-ip>:5000"
-        }
-    }
+            when {
+                expression { 
+                    env.BRANCH_NAME == 'main' || 
+                    env.GIT_BRANCH == 'origin/main' ||
+                    env.BRANCH_NAME == 'master' || 
+                    env.GIT_BRANCH == 'origin/master'
+                }
+            }
+            steps {
+                script {
+                    echo "⚡ Deploying application..."
+                    echo "Branch Info:"
+                    echo "BRANCH_NAME: ${env.BRANCH_NAME}"
+                    echo "GIT_BRANCH: ${env.GIT_BRANCH}"
+                    
+                    sh '''
+                    # Stop and remove existing container
+                    docker stop running-app || true
+                    docker rm running-app || true
+                    
+                    # Run new container with restart policy
+                    docker run -d \
+                        --name running-app \
+                        -p 5000:5000 \
+                        --restart unless-stopped \
+                        ${DOCKER_HUB}/${APP_NAME}:latest
+                    '''
+                    echo "🌐 Application deployed at http://<your-server-ip>:5000"
+                }
+            }
 }
 
-    post {
-        always {
-            echo "🧹 Cleaning up Docker..."
-            sh 'docker system prune -f --filter "until=24h"'
+        post {
+            always {
+                echo "🧹 Cleaning up Docker..."
+                sh 'docker system prune -f --filter "until=24h"'
+            }
+            success {
+                echo "🏆 PIPELINE SUCCESS! All stages completed successfully!"
+                sh '''
+                echo "Docker Images:"
+                docker images | grep ${DOCKER_HUB}/${APP_NAME}
+                '''
+            }
+            failure {
+                echo "🔥 PIPELINE FAILED! Check logs for details."
+            }
+            unstable {
+                echo "⚠️  PIPELINE UNSTABLE! Tests or other quality gates failed."
+            }
         }
-        success {
-            echo "🏆 PIPELINE SUCCESS! All stages completed successfully!"
-            sh '''
-            echo "Docker Images:"
-            docker images | grep ${DOCKER_HUB}/${APP_NAME}
-            '''
-        }
-        failure {
-            echo "🔥 PIPELINE FAILED! Check logs for details."
-        }
-        unstable {
-            echo "⚠️  PIPELINE UNSTABLE! Tests or other quality gates failed."
-        }
-    }
-}
