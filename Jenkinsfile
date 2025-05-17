@@ -90,24 +90,26 @@ pipeline {
                     echo "🌐 Application deployed at http://<your-server-ip>:5000"
                 }
             }
-}
-
-        post {
-            always {
-                echo "🧹 Cleaning up Docker..."
-                sh 'docker system prune -f --filter "until=24h"'
-            }
-            success {
-                echo "🏆 PIPELINE SUCCESS! All stages completed successfully!"
-                sh '''
-                echo "Docker Images:"
-                docker images | grep ${DOCKER_HUB}/${APP_NAME}
-                '''
-            }
-            failure {
-                echo "🔥 PIPELINE FAILED! Check logs for details."
-            }
-            unstable {
-                echo "⚠️  PIPELINE UNSTABLE! Tests or other quality gates failed."
-            }
         }
+    }
+
+    post {
+        always {
+            echo "🧹 Cleaning up Docker..."
+            sh 'docker system prune -f --filter "until=24h"'
+        }
+        success {
+            echo "🏆 PIPELINE SUCCESS! All stages completed successfully!"
+            sh '''
+            echo "Docker Images:"
+            docker images | grep ${DOCKER_HUB}/${APP_NAME}
+            '''
+        }
+        failure {
+            echo "🔥 PIPELINE FAILED! Check logs for details."
+        }
+        unstable {
+            echo "⚠️  PIPELINE UNSTABLE! Tests or other quality gates failed."
+        }
+    }
+}
