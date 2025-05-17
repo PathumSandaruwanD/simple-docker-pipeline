@@ -50,7 +50,6 @@ pipeline {
                     try {
                         docker.withRegistry(DOCKER_REGISTRY, 'docker-hub-creds') {
                             docker.image("${DOCKER_HUB}/${APP_NAME}:${BUILD_TAG}").push()
-                            docker.image("${DOCKER_HUB}/${APP_NAME}:latest").push()
                         }
                         echo "📦 Images pushed successfully!"
                     } catch (Exception e) {
@@ -61,37 +60,37 @@ pipeline {
         }
 
         stage('🚀 Deploy') {
-            when {
-                anyOf {
-                    branch 'main'
-                    branch 'master'
-                }
-            }
-            steps {
-                script {
-                    echo "⚡ Deploying application..."
-                    echo "Current branch: ${env.BRANCH_NAME}"
-                    
-                    try {
-                        sh '''
-                        # Stop and remove existing container
-                        docker stop running-app || true
-                        docker rm running-app || true
-                        
-                        # Run new container
-                        docker run -d \
-                            --name running-app \
-                            -p 5000:5000 \
-                            ${DOCKER_HUB}/${APP_NAME}:latest
-                        '''
-                        echo "🌐 Application deployed at http://<server-ip>:5000"
-                    } catch (Exception e) {
-                        error "❌ Deployment failed: ${e.getMessage()}"
-                    }
-                }
-            }
+    when {
+        expression { 
+            env.BRANCH_NAME == 'main' || 
+            env.GIT_BRANCH == 'origin/main' ||
+            env.BRANCH_NAME == 'master' || 
+            env.GIT_BRANCH == 'origin/master'
         }
     }
+    steps {
+        script {
+            echo "⚡ Deploying application..."
+            echo "Branch Info:"
+            echo "BRANCH_NAME: ${env.BRANCH_NAME}"
+            echo "GIT_BRANCH: ${env.GIT_BRANCH}"
+            
+            sh '''
+            # Stop and remove existing container
+            docker stop running-app || true
+            docker rm running-app || true
+            
+            # Run new container with restart policy
+            docker run -d \
+                --name running-app \
+                -p 5000:5000 \
+                --restart unless-stopped \
+                ${DOCKER_HUB}/${APP_NAME}:latest
+            '''
+            echo "🌐 Application deployed at http://<your-server-ip>:5000"
+        }
+    }
+}
 
     post {
         always {
